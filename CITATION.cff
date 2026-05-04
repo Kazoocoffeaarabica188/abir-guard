@@ -9,12 +9,13 @@ authors:
     affiliation: "Aquilldriver"
 abstract: >
   Abir-Guard is a quantum-resistant encryption vault designed for AI agent memory.
-  It implements NIST-standard Post-Quantum Cryptography (PQC) using ML-KEM-1024
-  and X25519 hybrid key encapsulation with AES-256-GCM envelope encryption to protect
-  sensitive agent data from Harvest Now, Decrypt Later (HNDL) attacks.
+  It implements NIST-standard Post-Quantum Cryptography (PQC) using ML-KEM-1024,
+  ML-DSA-65 digital signatures, SHAMIR secret sharing, and Argon2id key derivation
+  with AES-256-GCM envelope encryption to protect sensitive agent data from
+  Harvest Now, Decrypt Later (HNDL) attacks.
 license: MIT
-version: 1.0.0
-date-released: 2026-05-03
+version: 2.0.0
+date-released: 2026-05-04
 url: "https://github.com/abir-guard/abir-guard"
 repository-code: "https://github.com/abir-guard/abir-guard"
 keywords:

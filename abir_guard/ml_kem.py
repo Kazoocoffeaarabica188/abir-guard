@@ -1,6 +1,12 @@
 """
 Abir-Guard: ML-KEM Key Encapsulation Module
 
+Production-Ready ML-KEM-1024 (NIST FIPS 203)
+=============================================
+Primary: pqcrypto (PQClean-backed) — native ML-KEM-1024 implementation
+Secondary: liboqs (Open Quantum Safe) — alternative PQ library
+Fallback: X25519 (classical ECDH) — only when no PQC library available
+
 Cleanroom Approach
 ==================
 Core Philosophy: Never store the raw key and the data in the same memory page.
@@ -14,7 +20,6 @@ Security Watchdog: 200ms latency threshold detects side-channel timing attacks.
 If encapsulation/decapsulation takes longer than 200ms on expected hardware,
 a SecurityException is raised to prevent timing-based key extraction.
 
-Fallback: Uses X25519 (classical ECDH) when liboqs (ML-KEM-1024) is not installed.
 Hybrid mode combines both: ML-KEM + X25519 secrets hashed together via SHA-256.
 """
 
@@ -38,27 +43,47 @@ class SecurityException(Exception):
 class MLKEM1024:
     """
     ML-KEM-1024 Key Encapsulation (NIST FIPS 203)
-    Falls back to X25519 when liboqs unavailable
+    Production-ready with pqcrypto, fallback to liboqs then X25519
     """
     
     def __init__(self):
-        self._available = self._try_load_oqs()
+        self._backend = None
+        self._kem = None
+        self._available = self._init_backend()
     
-    def _try_load_oqs(self) -> bool:
+    def _init_backend(self) -> bool:
+        try:
+            from pqcrypto.kem.ml_kem_1024 import generate_keypair, encrypt, decrypt
+            self._kem = {
+                'keygen': generate_keypair,
+                'encrypt': encrypt,
+                'decrypt': decrypt,
+            }
+            self._backend = 'pqcrypto'
+            return True
+        except ImportError:
+            pass
+        
         try:
             from liboqs import Kem
             self._kem = Kem("ML-KEM-1024")
+            self._backend = 'liboqs'
             return True
         except ImportError:
             self._kem = None
+            self._backend = 'x25519'
             return False
+    
+    def backend(self) -> str:
+        return self._backend or 'none'
     
     def is_available(self) -> bool:
         return self._available
     
     def keygen(self) -> Tuple[bytes, bytes]:
-        """Generate ML-KEM keypair"""
-        if self._kem:
+        if self._backend == 'pqcrypto':
+            return self._kem['keygen']()
+        elif self._backend == 'liboqs':
             pk = self._kem.generate_keypair()
             sk = self._kem.export_secret_key()
             return pk, sk
@@ -68,7 +93,9 @@ class MLKEM1024:
         """Encapsulate with security watchdog"""
         start_time = time.perf_counter()
         
-        if self._kem:
+        if self._backend == 'pqcrypto':
+            ct, ss = self._kem['encrypt'](public_key)
+        elif self._backend == 'liboqs':
             ct = self._kem.encapsulate(public_key)
             ss = self._kem.export_shared_secret()
         else:
@@ -76,7 +103,6 @@ class MLKEM1024:
         
         elapsed = time.perf_counter() - start_time
         
-        # Security Watchdog: Latency Anomaly Detection
         if elapsed > HANDSHAKE_TIMEOUT:
             raise SecurityException(
                 f"Latency Anomaly: {elapsed:.3f}s (expected <{HANDSHAKE_TIMEOUT}s). "
@@ -90,8 +116,9 @@ class MLKEM1024:
         return self.encapsulate(public_key)
     
     def decapsulate(self, ciphertext: bytes, secret_key: bytes) -> bytes:
-        """Decapsulate"""
-        if self._kem:
+        if self._backend == 'pqcrypto':
+            return self._kem['decrypt'](secret_key, ciphertext)
+        elif self._backend == 'liboqs':
             return self._kem.decapsulate(ciphertext, secret_key)
         return self._x25519_decapsulate(ciphertext, secret_key)
     
@@ -102,23 +129,10 @@ class MLKEM1024:
         return pk.public_bytes_raw(), sk.private_bytes_raw()
     
     def _x25519_encapsulate(self, public_key_bytes: bytes) -> Tuple[bytes, bytes]:
-        """
-        X25519 encapsulation — proper ECDH
-        
-        Generates ephemeral X25519 keypair, derives shared secret via
-        ECDH with recipient's public key. Returns (ephemeral_public_key, shared_secret).
-        """
-        # Generate ephemeral X25519 keypair
         ephemeral_sk = x25519.X25519PrivateKey.generate()
         ephemeral_pk = ephemeral_sk.public_key()
-        
-        # Load recipient's public key
         recipient_pk = x25519.X25519PublicKey.from_public_bytes(public_key_bytes)
-        
-        # Perform ECDH: derive shared secret
         shared_secret = ephemeral_sk.exchange(recipient_pk)
-        
-        # HKDF to derive final shared secret from ECDH output
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
@@ -127,28 +141,12 @@ class MLKEM1024:
             backend=default_backend()
         )
         derived_ss = hkdf.derive(shared_secret)
-        
-        # Ciphertext = ephemeral public key (32 bytes)
-        # Receiver uses it to perform ECDH with their secret key
         return ephemeral_pk.public_bytes_raw(), derived_ss
     
     def _x25519_decapsulate(self, ciphertext: bytes, secret_key_bytes: bytes) -> bytes:
-        """
-        X25519 decapsulation — proper ECDH
-        
-        Uses recipient's secret key and sender's ephemeral public key (from ciphertext)
-        to derive the same shared secret via ECDH.
-        """
-        # Load recipient's secret key
         sk = x25519.X25519PrivateKey.from_private_bytes(secret_key_bytes)
-        
-        # Extract sender's ephemeral public key from ciphertext
         ephemeral_pk = x25519.X25519PublicKey.from_public_bytes(ciphertext)
-        
-        # Perform ECDH
         shared_secret = sk.exchange(ephemeral_pk)
-        
-        # HKDF to derive final shared secret (same as encapsulate)
         hkdf = HKDF(
             algorithm=hashes.SHA256(),
             length=32,

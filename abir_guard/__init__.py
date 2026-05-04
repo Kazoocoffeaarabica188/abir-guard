@@ -34,7 +34,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.backends import default_backend
 
-VERSION = "1.0.0"
+VERSION = "3.0.0"
 DOMAIN = b"Abir-Guard-Hybrid-2026"
 
 # Input validation constants

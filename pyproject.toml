@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "abir-guard"
-version = "1.0.0"
+version = "3.0.0"
 description = "PQC Agent Memory Vault - Quantum-resistant vault for AI Agent memory"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Abir-Guard Team", email = "team@abir-guard.dev"}
+    {name = "Abir Maheshwari", email = "abhirsxn@gmail.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

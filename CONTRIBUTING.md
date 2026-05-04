@@ -1,8 +1,8 @@
 # Contributing to Abir-Guard
 
-Thank you for your interest in contributing to Abir-Guard — the quantum-resilient vault for AI agent memory.
+Thank you for your interest in contributing to Abir-Guard — the quantum-resilient vault I built for AI agent memory.
 
-We welcome contributions from developers, security researchers, and AI engineers who believe that agent memory should be a private vault, not an open book.
+I welcome contributions from developers, security researchers, and AI engineers who believe that agent memory should be a private vault, not an open book.
 
 ---
 
@@ -64,18 +64,16 @@ deps: update aes-gcm to 0.11
 
 ## Priority Contribution Areas
 
-We especially welcome contributions in these areas:
+I especially welcome contributions in these areas:
 
 ### High Priority
 - [ ] **Real ML-KEM-1024 via liboqs** — Replace X25519 fallback with actual PQC
 - [ ] **Rust Security Watchdog** — Port 200ms latency detection to Rust
 - [ ] **Go SDK** — Native Go implementation for Kubernetes workloads
-- [ ] **ML-DSA Signatures** — NIST FIPS 204 digital signatures
 
 ### Medium Priority
 - [ ] **YubiKey Integration** — PKCS#11 HSM support
 - [ ] **Real TPM 2.0 Seal/Unseal** — Hardware-backed key storage
-- [ ] **SHAMIR Secret Sharing** — Split keys across multiple agents
 - [ ] **Mojo SDK** — Modular language support
 
 ### Lower Priority
@@ -145,7 +143,7 @@ cargo test && pytest tests/test_abir_guard.py -v
 ## Questions?
 
 - Open a [discussion](https://github.com/abir-guard/abir-guard/discussions)
-- Email: abir@aquilldriver.com
+- Email: abhirsxn@gmail.com
 
 ---
 

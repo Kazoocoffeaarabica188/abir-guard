@@ -3,6 +3,9 @@ use std::io::{self, BufRead, Write};
 
 use abir_guard::{Ciphertext, McpServer, VERSION};
 use abir_guard::persistent_vault;
+use abir_guard::shamir;
+use abir_guard::ml_dsa;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 const DEFAULT_PASSPHRASE: &str = "";  // Empty = use env var ABIR_GUARD_KEY
 
@@ -34,6 +37,46 @@ enum Commands {
     ClearCache,
     /// Start MCP server (stdio mode)
     McpServer { mode: String },
+    /// Split a secret into N shares (require T to recover)
+    ShamirSplit {
+        /// The secret to split
+        secret: String,
+        /// Number of shares required to reconstruct
+        #[arg(short, long, default_value_t = 2)]
+        threshold: usize,
+        /// Total number of shares to create
+        #[arg(short, long, default_value_t = 3)]
+        shares: usize,
+    },
+    /// Reconstruct a secret from shares (one share per argument)
+    ShamirJoin {
+        /// Share strings (base64 encoded, format: "index:data")
+        shares: Vec<String>,
+    },
+    /// Generate ML-DSA-65 signing/verifying keypair
+    MldsaInit {
+        /// Key ID to store in vault
+        #[arg(short, long)]
+        key_id: Option<String>,
+    },
+    /// Sign data with ML-DSA using vault-stored key
+    MldsaSign {
+        /// Key ID to use for signing
+        key_id: String,
+        /// Data to sign (or read from stdin if empty)
+        data: Option<String>,
+    },
+    /// Verify ML-DSA signature using vault-stored key
+    MldsaVerify {
+        /// Key ID to use for verification
+        key_id: String,
+        /// Data that was signed
+        data: String,
+        /// Base64 encoded signature
+        signature: String,
+    },
+    /// List stored ML-DSA keys
+    MldsaList,
     /// Show version info
     Info,
 }
@@ -158,13 +201,184 @@ fn main() {
             }
         }
         
+        Some(Commands::ShamirSplit { secret, threshold, shares }) => {
+            if threshold < 2 {
+                eprintln!("Threshold must be >= 2");
+                std::process::exit(1);
+            }
+            if shares < threshold {
+                eprintln!("Shares ({}) must be >= threshold ({})", shares, threshold);
+                std::process::exit(1);
+            }
+            if shares > 255 {
+                eprintln!("Shares must be <= 255");
+                std::process::exit(1);
+            }
+            
+            let shares_result = shamir::split(secret.as_bytes(), threshold, shares);
+            let encoded = shamir::encode_shares(&shares_result);
+            
+            println!("SHAMIR Secret Sharing ({}, {})", threshold, shares);
+            println!("Secret length: {} bytes", secret.len());
+            println!();
+            println!("Store each share separately. Any {} shares can recover the secret.", threshold);
+            println!();
+            for (i, share_str) in encoded.iter().enumerate() {
+                println!("Share {}: {}", i + 1, share_str);
+            }
+        }
+        
+        Some(Commands::ShamirJoin { shares: share_strings }) => {
+            if share_strings.len() < 2 {
+                eprintln!("Need at least 2 shares to reconstruct");
+                std::process::exit(1);
+            }
+            
+            let refs: Vec<&str> = share_strings.iter().map(|s| s.as_str()).collect();
+            let shares_result = match shamir::decode_shares(&refs) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Invalid share format: {}", e);
+                    std::process::exit(1);
+                }
+            };
+            
+            let recovered = shamir::reconstruct(&shares_result);
+            match String::from_utf8(recovered.clone()) {
+                Ok(s) => println!("{}", s),
+                Err(_) => {
+                    println!("{}", BASE64.encode(&recovered));
+                }
+            }
+        }
+        
         Some(Commands::Info) => {
             println!("Abir-Guard v{}", VERSION);
             println!("PQC Agent Memory Vault");
             println!("ML-KEM + AES-256-GCM");
+            println!("ML-DSA-65 Signatures");
+            println!("Argon2id Key Derivation");
+            println!("SHAMIR Secret Sharing");
             println!("Security Watchdog: 200ms");
             println!("Memory Zeroization: enabled");
             println!("Disk Encryption: AES-256-GCM");
+        }
+        
+        Some(Commands::MldsaInit { ref key_id }) => {
+            let keypair = ml_dsa::generate_keypair().expect("Key generation failed");
+            let json = ml_dsa::serialize_keypair(&keypair);
+            
+            println!("ML-DSA-65 Keypair Generated");
+            println!("Security Category: 3 (equivalent to AES-192)");
+            println!("Signing Key Size: {} bytes", keypair.signing_key.len());
+            println!("Verifying Key Size: {} bytes", keypair.verifying_key.len());
+            println!();
+            
+            if let Some(id) = key_id {
+                if let Err(e) = validate_key_id(id) {
+                    eprintln!("Invalid key_id: {}", e);
+                    std::process::exit(1);
+                }
+                
+                let passphrase = get_passphrase(&cli);
+                match persistent_vault::persist_mldsa_keys(&[(id.clone(), keypair.clone())], &passphrase) {
+                    Ok(()) => {
+                        println!("Stored in vault with key_id: {}", id);
+                        println!("Verify Key: {}", BASE64.encode(&keypair.verifying_key));
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to store in vault: {}", e);
+                        println!("Exported as JSON for manual storage:");
+                        println!("{}", json);
+                    }
+                }
+            } else {
+                println!("Sign Key: {}", BASE64.encode(&keypair.signing_key));
+                println!();
+                println!("Verify Key: {}", BASE64.encode(&keypair.verifying_key));
+                println!();
+                println!("Store both keys securely. Never share the signing key.");
+                println!("Exported as JSON for vault storage:");
+                println!("{}", json);
+                println!();
+                println!("To store in vault, run with --key-id <id>");
+            }
+        }
+        
+        Some(Commands::MldsaSign { ref key_id, ref data }) => {
+            if let Err(e) = validate_key_id(key_id) {
+                eprintln!("Invalid key_id: {}", e);
+                std::process::exit(1);
+            }
+            
+            let data_bytes = match data {
+                Some(d) => d.clone().into_bytes(),
+                None => {
+                    let mut input = String::new();
+                    io::stdin().read_line(&mut input).expect("Failed to read stdin");
+                    input.into_bytes()
+                }
+            };
+            
+            let hash = ml_dsa::hash_data(&data_bytes);
+            let passphrase = get_passphrase(&cli);
+            
+            match persistent_vault::sign_with_vault(key_id, &data_bytes, &passphrase) {
+                Ok(signature) => {
+                    println!("Data Hash (SHA3-512): {}", BASE64.encode(&hash));
+                    println!("Signature: {}", BASE64.encode(&signature));
+                }
+                Err(e) => {
+                    eprintln!("Signing failed: {}", e);
+                    eprintln!("Ensure key '{}' exists in vault (run 'mldsa-init --key-id {}' first)", key_id, key_id);
+                    std::process::exit(1);
+                }
+            }
+        }
+        
+        Some(Commands::MldsaVerify { ref key_id, ref data, ref signature }) => {
+            if let Err(e) = validate_key_id(key_id) {
+                eprintln!("Invalid key_id: {}", e);
+                std::process::exit(1);
+            }
+            
+            let data_bytes = data.clone().into_bytes();
+            let sig_bytes = BASE64.decode(signature).expect("Invalid base64 signature");
+            let passphrase = get_passphrase(&cli);
+            
+            match persistent_vault::verify_with_vault(&key_id, &data_bytes, &sig_bytes, &passphrase) {
+                Ok(valid) => {
+                    if valid {
+                        println!("Signature VALID");
+                    } else {
+                        println!("Signature INVALID");
+                        std::process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Verification error: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        
+        Some(Commands::MldsaList) => {
+            let passphrase = get_passphrase(&cli);
+            match persistent_vault::list_mldsa_keys(&passphrase) {
+                Ok(keys) => {
+                    if keys.is_empty() {
+                        println!("No ML-DSA keys stored");
+                    } else {
+                        println!("Stored ML-DSA keys:");
+                        for key in keys {
+                            println!("  - {}", key);
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to load keys: {}", e);
+                }
+            }
         }
         
         None => {
@@ -182,6 +396,12 @@ fn main() {
             println!("  delete-key   Delete a key");
             println!("  clear-cache  Clear all vault data");
             println!("  mcp-server   Start MCP server (stdio)");
+            println!("  shamir-split Split a secret into N shares");
+            println!("  shamir-join  Reconstruct a secret from shares");
+            println!("  mldsa-init   Generate ML-DSA signing keypair");
+            println!("  mldsa-sign   Sign data with ML-DSA");
+            println!("  mldsa-verify Verify ML-DSA signature");
+            println!("  mldsa-list   List stored ML-DSA keys");
             println!("  info         Show version info");
         }
     }
