@@ -61,20 +61,21 @@
 
 ## Why Abir-Guard?
 
-| Feature | **Abir-Guard** | HashiCorp Vault | AWS KMS | Standard AES-256 |
+| Feature | **Abir-Guard** | [HashiCorp Vault](https://www.vaultproject.io/) | [AWS KMS](https://aws.amazon.com/kms/) | Standard AES-256 |
 |---------|-----------------|-----------------|---------|------------------|
-| **Post-Quantum Ready** | ✅ ML-KEM-1024 (prod) + ML-DSA-65 (prod) | ❌ Classical only | ❌ Not available | ❌ Not available |
-| **AI Agent Native** | ✅ LangChain, CrewAI, MCP server | ❌ No AI integrations | ❌ No AI integrations | ❌ No AI integrations |
-| **Multi-Language SDK** | ✅ Python, Rust, Go, JavaScript | ⚠️ Go, Java, Python | ⚠️ AWS SDK required | ❌ Manual implementation |
-| **Hardware Security** | ✅ YubiKey, TPM 2.0, Apple SE, Intel SGX | ✅ HSM support | ✅ Cloud HSM | ❌ Software only |
-| **FIPS 140-3 Mode** | ✅ Strict compliance mode | ⚠️ With HSM | ⚠️ With CloudHSM | ❌ Not compliant |
+| **Post-Quantum Ready** | ✅ [ML-KEM-1024](https://github.com/Abiress/abir-guard/blob/master/abir_guard/ml_kem.py) (prod) | ❌ Classical only | ❌ Not available | ❌ Not available |
+| **PQ Signatures** | ✅ [ML-DSA-65](https://github.com/Abiress/abir-guard/blob/master/abir_guard/revocation.py) (prod) | ❌ Not available | ❌ Not available | ❌ Not available |
+| **AI Agent Native** | ✅ [LangChain](https://github.com/Abiress/abir-guard/blob/master/abir_guard/langchain.py), [CrewAI](https://github.com/Abiress/abir-guard/blob/master/abir_guard/crewai.py), [MCP](https://github.com/Abiress/abir-guard/blob/master/abir_guard/mcp_http.py) | ❌ No AI integrations | ❌ No AI integrations | ❌ No AI integrations |
+| **Multi-Language SDK** | ✅ [Python](https://github.com/Abiress/abir-guard/tree/master/abir_guard), [Rust](https://crates.io/crates/abir_guard), [Go](https://github.com/Abiress/abir-guard/tree/master/sdk/go), [JS](https://github.com/Abiress/abir-guard/tree/master/sdk/js) | ⚠️ Go, Java, Python | ⚠️ AWS SDK required | ❌ Manual implementation |
+| **Hardware Security** | ✅ [YubiKey](https://github.com/Abiress/abir-guard/blob/master/abir_guard/yubikey_integration.py), [TPM 2.0](https://github.com/Abiress/abir-guard/blob/master/abir_guard/tpm2_seal.py), [Apple SE](https://github.com/Abiress/abir-guard/blob/master/abir_guard/hardware_enclave.py) | ✅ HSM support | ✅ Cloud HSM | ❌ Software only |
+| **FIPS 140-3 Mode** | ✅ [Strict mode](https://github.com/Abiress/abir-guard/blob/master/abir_guard/fips_mode.py) | ⚠️ With HSM | ⚠️ With CloudHSM | ❌ Not compliant |
 | **Lightweight** | ✅ 50MB disk, 128MB RAM | ❌ Heavy (300MB+) | ❌ Cloud only | ✅ Lightweight |
-| **Open Source** | ✅ MIT License | ✅ MPL 2.0 | ❌ Proprietary | ✅ Depends on lib |
+| **Open Source** | ✅ [MIT](https://github.com/Abiress/abir-guard/blob/master/LICENSE) | ✅ MPL 2.0 | ❌ Proprietary | ✅ Depends on lib |
 | **Cost** | ✅ Free (self-hosted) | ✅ Free / Paid Enterprise | ❌ Pay per API call | ✅ Free |
-| **Key Rotation** | ✅ Auto (time/usage-based) | ✅ Manual/API | ✅ Automated | ❌ Manual |
-| **Remote Attestation** | ✅ Runtime integrity checks | ❌ Not built-in | ❌ Not built-in | ❌ Not built-in |
-| **Differential Privacy** | ✅ Laplace noise injection | ❌ Not available | ❌ Not available | ❌ Not available |
-| **Canary Honeypots** | ✅ Breach detection keys | ❌ Not available | ❌ Not available | ❌ Not available |
+| **Auto Key Rotation** | ✅ [Time/usage-based](https://github.com/Abiress/abir-guard/blob/master/abir_guard/rotation.py) | ✅ Manual/API | ✅ Automated | ❌ Manual |
+| **Remote Attestation** | ✅ [Runtime checks](https://github.com/Abiress/abir-guard/blob/master/abir_guard/attestation.py) | ❌ Not built-in | ❌ Not built-in | ❌ Not built-in |
+| **Differential Privacy** | ✅ [Laplace noise](https://github.com/Abiress/abir-guard/blob/master/abir_guard/differential_privacy.py) | ❌ Not available | ❌ Not available | ❌ Not available |
+| **Canary Honeypots** | ✅ [Breach detection](https://github.com/Abiress/abir-guard/blob/master/abir_guard/__init__.py) | ❌ Not available | ❌ Not available | ❌ Not available |
 
 **Key differentiators:**
 1. **Post-Quantum First** — Only vault with production-ready NIST FIPS 203/204 (ML-KEM-1024 + ML-DSA-65) deployed today
