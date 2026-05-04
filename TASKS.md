@@ -137,14 +137,13 @@
 
 ---
 
-## Future Work (v3.1.0+)
+## Future Work (v3.2.0+)
 
-- [ ] PyPI publishing (`pip install abir-guard`)
-- [ ] crates.io publishing (`cargo install abir-guard`)
 - [ ] Rust TPM 2.0 integration (`tss-esapi` crate)
 - [ ] Apple Secure Enclave native API bindings (macOS only)
 - [ ] Intel SGX enclave implementation (requires SGX SDK)
 - [ ] Real TPM 2.0 seal/unseal with `tpm2-tools` installed
+- [ ] WASM compilation for browser environments
 
 ---
 

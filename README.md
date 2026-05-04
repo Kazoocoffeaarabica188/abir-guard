@@ -1,11 +1,13 @@
-# Abir-Guard v3.0.0 — Quantum-Resilient Agentic Vault for AI Agent Memory
+# Abir-Guard v3.1.0 — Quantum-Resilient Agentic Vault for AI Agent Memory
 
 <p align="center">
   <strong>Protect AI agent secrets, API keys, and memory with NIST-standard post-quantum cryptography.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.0.0-blue?style=for-the-badge&logo=github" alt="Version 3.0.0">
+  <img src="https://img.shields.io/badge/version-3.1.0-blue?style=for-the-badge&logo=github" alt="Version 3.1.0">
+  <img src="https://img.shields.io/pypi/v/abir-guard?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI" alt="PyPI">
+  <img src="https://img.shields.io/crates/v/abir_guard?style=for-the-badge&logo=rust&logoColor=white&label=crates.io" alt="crates.io">
   <img src="https://img.shields.io/badge/Python-3.10%2B-green?style=for-the-badge&logo=python" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/Rust-1.70%2B-orange?style=for-the-badge&logo=rust" alt="Rust 1.70+">
   <img src="https://img.shields.io/badge/Go-1.21%2B-cyan?style=for-the-badge&logo=go" alt="Go 1.21+">
@@ -302,9 +304,24 @@ docker run -d -p 9090:9090 -e ABIR_GUARD_API_KEY="your-key" abir-guard:latest
 
 ## Quick Start
 
+### Install from Package Managers (Recommended)
+
+```bash
+# Python (PyPI)
+pip install abir-guard
+
+# Rust (crates.io)
+cargo add abir_guard
+
+# Go (GitHub)
+go get github.com/Abiress/abir-guard/sdk/go
+```
+
+### From Source
+
 ```bash
 # Clone and install all components
-git clone https://github.com/abir-guard/abir-guard.git
+git clone https://github.com/Abiress/abir-guard.git
 cd abir-guard
 
 # Python: install and test
@@ -590,6 +607,60 @@ if tpm.is_available():
     print("TPM hardware detected — keys can be hardware-sealed")
 ```
 
+## Phase 2 Hardware Security Features
+
+### YubiKey / FIDO2 Integration
+
+```python
+from abir_guard import YubiKeyManager
+
+yk = YubiKeyManager()
+
+# Generate hardware-backed key
+cred_id = yk.generate_key("agent-1", "ed25519")
+
+# Sign data (requires YubiKey touch in production)
+signature = yk.sign("agent-1", b"data to sign")
+
+# Encrypt/decrypt with YubiKey-backed keys
+ct, nonce = yk.encrypt_with_yubikey("agent-1", b"secret")
+plaintext = yk.decrypt_with_yubikey("agent-1", ct, nonce)
+```
+
+### TPM 2.0 Seal/Unseal
+
+```python
+from abir_guard import TPM2Sealer
+
+tpm = TPM2Sealer()
+
+# Seal data to TPM PCR values (hardware-bound)
+sealed = tpm.seal(b"master-key", pcr_indices=[0, 7])
+
+# Unseal - only works if system state matches
+recovered = tpm.unseal(sealed)
+```
+
+### Hardware Enclave Detection
+
+```python
+from abir_guard import HardwareEnclave
+
+enc = HardwareEnclave()
+print(f"Platform: {enc.platform}")
+print(f"Available: {enc.is_available()}")
+
+# Generate hardware-backed key
+enc.generate_key("agent-1")
+
+# Seal/unseal using best available hardware
+sealed = enc.seal(b"secret", "agent-1")
+recovered = enc.unseal(sealed, "agent-1")
+
+# Get attestation report
+report = enc.attest(b"challenge-nonce")
+```
+
 ---
 
 ## Quantum Readiness
@@ -793,6 +864,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Zero-trust threat model, trust boundaries, mitigations |
 | [SECURITY.md](.github/SECURITY.md) | Vulnerability reporting policy, disclosure process |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines, code style, PR checklist |
+| [PUBLISHING.md](PUBLISHING.md) | PyPI and crates.io publishing guide |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards and enforcement |
 | [CITATION.cff](CITATION.cff) | Academic citation for research papers |
 | [TASKS.md](TASKS.md) | Feature status and roadmap |

@@ -1,0 +1,2 @@
+# This file indicates that the abir_guard package supports type hints (PEP 561)
+# Required for mypy and other type checkers to recognize type information

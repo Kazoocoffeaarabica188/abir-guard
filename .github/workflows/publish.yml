@@ -1,0 +1,99 @@
+name: Publish to PyPI and crates.io
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish_pypi:
+        description: 'Publish to PyPI'
+        required: true
+        default: true
+        type: boolean
+      publish_crates:
+        description: 'Publish to crates.io'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish-pypi:
+    if: ${{ github.event.inputs.publish_pypi == 'true' || github.event_name == 'release' }}
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/abir-guard
+    permissions:
+      id-token: write  # For trusted publishing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Check package
+        run: twine check dist/*
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  publish-crates:
+    if: ${{ github.event.inputs.publish_crates == 'true' || github.event_name == 'release' }}
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/abir_guard
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Verify package
+        run: cargo verify-package
+
+      - name: Publish to crates.io
+        run: cargo publish --token ${CRATES_TOKEN}
+        env:
+          CRATES_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+
+  verify-publication:
+    name: Verify Publication
+    runs-on: ubuntu-latest
+    needs: [publish-pypi, publish-crates]
+    if: always()
+    steps:
+      - name: Check PyPI package
+        run: |
+          sleep 30  # Wait for PyPI indexing
+          pip install abir-guard
+          python -c "import abir_guard; print(f'abir-guard {abir_guard.VERSION} installed successfully')"
+
+      - name: Check crates.io package
+        run: |
+          sleep 300  # Wait for crates.io indexing (can take 5-10 min)
+          cargo search abir_guard | head -n 5
+        continue-on-error: true
