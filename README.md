@@ -846,8 +846,8 @@ abir_guard/
 - [x] Differential privacy entropy
 - [x] Remote attestation
 - [x] Go SDK
-- [ ] PyPI publishing
-- [ ] crates.io publishing
+- [x] PyPI publishing (`pip install abir-guard`)
+- [x] crates.io publishing (`cargo add abir_guard`)
 
 ---
 

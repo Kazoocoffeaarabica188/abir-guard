@@ -66,11 +66,15 @@
 | # | File | Status | Description |
 |---|------|--------|-------------|
 | 30 | `Cargo.toml` | ✅ Done | Rust dependencies (edition 2021), release profile (LTO, strip, z-optimization) |
-| 31 | `pyproject.toml` | ✅ Done | Python package v3.0.0, setuptools, pytest config |
+| 31 | `pyproject.toml` | ✅ Done | Python package v3.1.0, setuptools, pytest config, PyPI-ready |
 | 32 | `Dockerfile` | ✅ Done | Multi-stage build, hardened MCP server with API key |
 | 33 | `.github/workflows/ci-cd.yml` | ✅ Done | 5-job CI: Python tests, Rust tests, lint, security audit, Docker |
-| 34 | `.github/dependabot.yml` | ✅ Done | Weekly dependency updates |
-| 35 | `.gitignore` | ✅ Done | Python, Rust, IDE, OS, vault patterns |
+| 34 | `.github/workflows/publish.yml` | ✅ Done | Automated PyPI + crates.io publishing on release |
+| 35 | `.github/dependabot.yml` | ✅ Done | Weekly dependency updates |
+| 36 | `.gitignore` | ✅ Done | Python, Rust, IDE, OS, vault patterns |
+| 37 | `PUBLISHING.md` | ✅ Done | Complete publishing guide for PyPI and crates.io |
+| 38 | `scripts/publish-pypi.sh` | ✅ Done | PyPI publishing script with TestPyPI support |
+| 39 | `scripts/publish-crates.sh` | ✅ Done | crates.io publishing script with dry-run |
 
 ### Tests
 
@@ -85,17 +89,17 @@
 #### Rust
 | # | Module | Status | Description |
 |---|--------|--------|-------------|
-| 39 | `quantum_kernel` | ✅ 3/3 pass | Vault round-trip, auto-keygen, zeroization |
-| 40 | `entropy_inject` | ✅ 1/1 pass | Entropy collection |
-| 41 | `zero_copy` | ✅ 1/1 pass | Zero-copy vault |
-| 42 | `mcp_gateway` | ✅ 1/1 pass | MCP request handling |
-| 43 | `kdf` | ✅ 2/2 pass | Argon2id derivation + key length |
-| 44 | `shamir` | ✅ 6/6 pass | Split/reconstruct, encode/decode, threshold, insufficient shares, full reconstruction, 2-of-3 |
-| 45 | `ml_dsa` | ✅ 6/6 pass | Keygen, sign/verify, cross-key, serialization, hash consistency, invalid signature |
-| 46 | `revocation` | ✅ 2/2 pass | Revoke/check, integrity verification |
-| 47 | `rotation` | ✅ 2/2 pass | Usage-based rotation, no rotation under limit |
-| 48 | `differential_privacy` | ✅ 2/2 pass | Entropy collection, constant-time comparison |
-| 49 | `main` (CLI) | ✅ 2/2 pass | Key ID validation, version |
+| 50 | `quantum_kernel` | ✅ 3/3 pass | Vault round-trip, auto-keygen, zeroization |
+| 51 | `entropy_inject` | ✅ 1/1 pass | Entropy collection |
+| 52 | `zero_copy` | ✅ 1/1 pass | Zero-copy vault |
+| 53 | `mcp_gateway` | ✅ 1/1 pass | MCP request handling |
+| 54 | `kdf` | ✅ 2/2 pass | Argon2id derivation + key length |
+| 55 | `shamir` | ✅ 6/6 pass | Split/reconstruct, encode/decode, threshold, insufficient shares, full reconstruction, 2-of-3 |
+| 56 | `ml_dsa` | ✅ 6/6 pass | Keygen, sign/verify, cross-key, serialization, hash consistency, invalid signature |
+| 57 | `revocation` | ✅ 2/2 pass | Revoke/check, integrity verification |
+| 58 | `rotation` | ✅ 2/2 pass | Usage-based rotation, no rotation under limit |
+| 59 | `differential_privacy` | ✅ 2/2 pass | Entropy collection, constant-time comparison |
+| 60 | `main` (CLI) | ✅ 2/2 pass | Key ID validation, version |
 
 **Total: 89 tests pass (29 Rust + 17 Python Phase 1 + 24 Python Phase 3 + 24 Python Phase 2 + 12 Go SDK)**
 
@@ -134,6 +138,8 @@
 | **YubiKey / FIDO2** | ✅ | — | — | **Done** |
 | **TPM 2.0 Seal/Unseal** | ✅ | — | — | **Done** |
 | **Hardware Enclave Detection** | ✅ | — | — | **Done** |
+| **PyPI Publishing** | ✅ | — | — | **Done** |
+| **crates.io Publishing** | — | ✅ | — | **Done** |
 
 ---
 
@@ -142,7 +148,6 @@
 - [ ] Rust TPM 2.0 integration (`tss-esapi` crate)
 - [ ] Apple Secure Enclave native API bindings (macOS only)
 - [ ] Intel SGX enclave implementation (requires SGX SDK)
-- [ ] Real TPM 2.0 seal/unseal with `tpm2-tools` installed
 - [ ] WASM compilation for browser environments
 
 ---
