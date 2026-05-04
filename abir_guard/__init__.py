@@ -142,6 +142,9 @@ __all__ = [
     "McpHttpServer",
     "AuditLogger",
     "validate_key_id",
+    "YubiKeyManager",
+    "TPM2Sealer",
+    "HardwareEnclave",
 ]
 
 
@@ -519,4 +522,13 @@ def __getattr__(name):
     if name == "McpHttpServer":
         from .mcp_http import McpHttpServer
         return McpHttpServer
+    elif name == "YubiKeyManager":
+        from .yubikey_integration import YubiKeyManager
+        return YubiKeyManager
+    elif name == "TPM2Sealer":
+        from .tpm2_seal import TPM2Sealer
+        return TPM2Sealer
+    elif name == "HardwareEnclave":
+        from .hardware_enclave import HardwareEnclave
+        return HardwareEnclave
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

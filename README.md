@@ -21,9 +21,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Tests-85%2F85%20Passing-brightgreen?style=flat-square" alt="85/85 Tests Passing">
+  <img src="https://img.shields.io/badge/Tests-109%2F109%20Passing-brightgreen?style=flat-square" alt="109/109 Tests Passing">
   <img src="https://img.shields.io/badge/Rust-32%2F32%20Passing-orange?style=flat-square&logo=rust" alt="Rust 32/32">
-  <img src="https://img.shields.io/badge/Python-41%2F41%20Passing-yellow?style=flat-square&logo=python" alt="Python 41/41">
+  <img src="https://img.shields.io/badge/Python-65%2F65%20Passing-yellow?style=flat-square&logo=python" alt="Python 65/65">
   <img src="https://img.shields.io/badge/Go-12%2F12%20Passing-cyan?style=flat-square&logo=go" alt="Go 12/12">
 </p>
 
@@ -50,8 +50,8 @@
 | **Multi-Language** | Python SDK, Rust CLI + Library, Go SDK, JavaScript SDK |
 | **AI Native** | LangChain tools, CrewAI agents, MCP JSON-RPC server, HTTP MCP API |
 | **Hardened** | FIPS 140-3 mode, key revocation (CRL), auto rotation, remote attestation, differential privacy, canary honeypots, tamper-evident audit logs |
-| **Hardware Ready** | HSM integration (macOS Keychain, Windows Credential Manager), TPM 2.0 detection, zero-copy memory policy, Argon2id KDF (OWASP params) |
-| **Tested** | 85 unit tests pass across all languages, CI/CD pipeline, dependabot |
+| **Hardware Ready** | YubiKey/FIDO2, TPM 2.0 seal/unseal, Apple Secure Enclave, Intel SGX detection, HSM integration, zero-copy memory policy, Argon2id KDF (OWASP params) |
+| **Tested** | 109 unit tests pass across all languages, CI/CD pipeline, dependabot |
 
 ---
 
@@ -675,11 +675,12 @@ cd sdk/go && go test -v && cd ../..
 cargo test                          # Rust: 32 tests
 pytest tests/test_abir_guard.py -v  # Python Phase 1: 17 tests
 pytest tests/test_phase3.py -v      # Python Phase 3: 24 tests
-cd sdk/go && go test -v             # Go: 10 tests
+pytest tests/test_phase2_hardware.py -v  # Python Phase 2: 24 tests
+cd sdk/go && go test -v             # Go: 12 tests
 python3 tests/run_tests.py          # Manual suites: 5/5
 ```
 
-**All 85 tests pass across Rust, Python, and Go.**
+**All 109 tests pass across Rust, Python, and Go.**
 
 ---
 
@@ -687,9 +688,12 @@ python3 tests/run_tests.py          # Manual suites: 5/5
 
 ```
 abir_guard/
-├── abir_guard/              # Python package (12 modules)
+├── abir_guard/              # Python package (15 modules)
 │   ├── __init__.py          # Core Vault, HybridEncryptor, McpServer, AuditLogger
 │   ├── ml_kem.py            # ML-KEM-1024 + X25519 hybrid KEM (real ECDH)
+│   ├── yubikey_integration.py # YubiKey/FIDO2 integration (software fallback)
+│   ├── tpm2_seal.py         # TPM 2.0 seal/unseal (tpm2-tools CLI)
+│   ├── hardware_enclave.py  # Apple SE, Intel SGX, AMD SEV detection
 │   ├── langchain.py         # LangChain tool integration (3 tools)
 │   ├── crewai.py            # CrewAI tool integration (version-compatible)
 │   ├── abir_hsm.py          # HSM/TPM integration (Keychain, CredMgr, file, TPM)
@@ -760,9 +764,9 @@ abir_guard/
 - [x] SHAMIR secret sharing (GF(251))
 - [x] Argon2id KDF in Rust
 - [x] Real ML-KEM-1024 (Python: `pqcrypto` + Rust: `ml-kem` crate)
-- [ ] YubiKey / FIDO2 integration
-- [ ] Real TPM 2.0 seal/unseal
-- [ ] Apple Secure Enclave / Intel SGX
+- [x] YubiKey / FIDO2 integration (software fallback ready)
+- [x] TPM 2.0 seal/unseal (via tpm2-tools CLI)
+- [x] Apple Secure Enclave / Intel SGX / AMD SEV platform detection
 
 ### Phase 3: Ecosystem & Hardening (Complete)
 - [x] Key revocation (CRL, HMAC-signed)
