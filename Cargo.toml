@@ -1,6 +1,6 @@
 [package]
 name = "abir_guard"
-version = "3.1.0"
+version = "3.1.1"
 edition = "2021"
 rust-version = "1.70"
 description = "Abir-Guard: Quantum-Resilient Agentic Vault for AI Agent Memory with NIST-standard Post-Quantum Cryptography"
