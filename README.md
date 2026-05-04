@@ -915,7 +915,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the
 | [PUBLISHING.md](PUBLISHING.md) | PyPI and crates.io publishing guide |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community standards and enforcement |
 | [CITATION.cff](CITATION.cff) | Academic citation for research papers |
-| [TASKS.md](TASKS.md) | Feature status and roadmap |
 
 ---
 
