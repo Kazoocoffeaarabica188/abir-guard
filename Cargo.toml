@@ -14,13 +14,8 @@ keywords = [
     "cryptography",
     "post-quantum",
     "ml-kem",
-    "ml-dsa",
     "security",
-    "ai-agent",
-    "encryption",
     "vault",
-    "fips-140-3",
-    "quantum-resistant",
 ]
 categories = [
     "cryptography",
