@@ -790,18 +790,25 @@ abir_guard/
 │   ├── rotation.rs          # Automatic key rotation manager
 │   └── differential_privacy.rs # Laplace noise + Spectre/Meltdown defender
 ├── sdk/
-│   └── go/                  # Go SDK (AES-256-GCM vault with CRL, rotation, metadata)
-│       ├── abirguard.go     # Core implementation
-│       ├── abirguard_test.go # 12 unit tests
-│       └── go.mod           # Module definition
-├── src/abir_guard.js        # JavaScript SDK (Node.js crypto + MCP client)
+│   ├── go/                  # Go SDK (AES-256-GCM vault with CRL, rotation, metadata)
+│   │   ├── abirguard.go     # Core implementation
+│   │   ├── abirguard_test.go # 12 unit tests
+│   │   └── go.mod           # Module definition
+│   └── js/                  # JavaScript SDK (Node.js crypto + MCP client)
+│       └── abir_guard.js    # Basic vault + MCP client
 ├── examples/                # Usage examples
 ├── tests/                   # Test suites (Python)
 │   ├── run_tests.py         # Manual test runner (5 suites)
 │   ├── test_abir_guard.py   # Pytest Phase 1 (17 tests)
+│   ├── test_phase2_hardware.py # Pytest Phase 2 (24 tests)
 │   └── test_phase3.py       # Pytest Phase 3 (24 tests)
+├── scripts/                 # Publishing and debugging scripts
+│   ├── publish-pypi.sh      # PyPI publishing script
+│   ├── publish-crates.sh    # crates.io publishing script
+│   └── debug.sh             # Full project debug & verification
 ├── Cargo.toml               # Rust dependencies (edition 2021)
-├── pyproject.toml           # Python package config (v3.0.0)
+├── pyproject.toml           # Python package config (v3.1.0)
+├── PUBLISHING.md            # PyPI and crates.io publishing guide
 ├── Dockerfile               # Container build (hardened MCP server)
 ├── LICENSE                  # MIT License (2026)
 ├── README.md                # This file
