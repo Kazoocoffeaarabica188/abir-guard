@@ -5,28 +5,28 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.1.1-blue?style=for-the-badge&logo=github" alt="Version 3.1.1">
-  <img src="https://img.shields.io/pypi/v/abir-guard?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI" alt="PyPI">
-  <img src="https://img.shields.io/crates/v/abir_guard?style=for-the-badge&logo=rust&logoColor=white&label=crates.io" alt="crates.io">
-  <img src="https://img.shields.io/badge/Python-3.10%2B-green?style=for-the-badge&logo=python" alt="Python 3.10+">
-  <img src="https://img.shields.io/badge/Rust-1.70%2B-orange?style=for-the-badge&logo=rust" alt="Rust 1.70+">
-  <img src="https://img.shields.io/badge/Go-1.21%2B-cyan?style=for-the-badge&logo=go" alt="Go 1.21+">
-  <img src="https://img.shields.io/badge/Node.js-18%2B-darkgreen?style=for-the-badge&logo=node.js" alt="Node.js 18+">
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/version-3.1.1-blue?style=for-the-badge&logo=github" alt="Version 3.1.1"></a>
+  <a href="https://pypi.org/project/abir-guard/"><img src="https://img.shields.io/pypi/v/abir-guard?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI" alt="PyPI"></a>
+  <a href="https://crates.io/crates/abir_guard"><img src="https://img.shields.io/crates/v/abir_guard?style=for-the-badge&logo=rust&logoColor=white&label=crates.io" alt="crates.io"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Python-3.10%2B-green?style=for-the-badge&logo=python" alt="Python 3.10+"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Rust-1.70%2B-orange?style=for-the-badge&logo=rust" alt="Rust 1.70+"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Go-1.21%2B-cyan?style=for-the-badge&logo=go" alt="Go 1.21+"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Node.js-18%2B-darkgreen?style=for-the-badge&logo=node.js" alt="Node.js 18+"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/AES--256--GCM-NIST%20FIPS%20197-blue?style=flat-square&logo=lock" alt="AES-256-GCM">
-  <img src="https://img.shields.io/badge/ML--DSA--65-NIST%20FIPS%20204-green?style=flat-square&logo=shield" alt="ML-DSA-65">
-  <img src="https://img.shields.io/badge/ML--KEM--1024-NIST%20FIPS%20203-orange?style=flat-square&logo=shield" alt="ML-KEM-1024">
-  <img src="https://img.shields.io/badge/FIPS%20140--3-Compliant-success?style=flat-square&logo=shield-check" alt="FIPS 140-3">
-  <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square" alt="MIT License">
+  <a href="https://github.com/Abiress/abir-guard/blob/master/abir_guard/ml_kem.py"><img src="https://img.shields.io/badge/AES--256--GCM-NIST%20FIPS%20197-blue?style=flat-square&logo=lock" alt="AES-256-GCM"></a>
+  <a href="https://github.com/Abiress/abir-guard/blob/master/abir_guard/ml_kem.py"><img src="https://img.shields.io/badge/ML--DSA--65-NIST%20FIPS%20204-green?style=flat-square&logo=shield" alt="ML-DSA-65"></a>
+  <a href="https://github.com/Abiress/abir-guard/blob/master/abir_guard/ml_kem.py"><img src="https://img.shields.io/badge/ML--KEM--1024-NIST%20FIPS%20203-orange?style=flat-square&logo=shield" alt="ML-KEM-1024"></a>
+  <a href="https://github.com/Abiress/abir-guard/blob/master/abir_guard/fips_mode.py"><img src="https://img.shields.io/badge/FIPS%20140--3-Compliant-success?style=flat-square&logo=shield-check" alt="FIPS 140-3"></a>
+  <a href="https://github.com/Abiress/abir-guard/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Tests-109%2F109%20Passing-brightgreen?style=flat-square" alt="109/109 Tests Passing">
-  <img src="https://img.shields.io/badge/Rust-32%2F32%20Passing-orange?style=flat-square&logo=rust" alt="Rust 32/32">
-  <img src="https://img.shields.io/badge/Python-65%2F65%20Passing-yellow?style=flat-square&logo=python" alt="Python 65/65">
-  <img src="https://img.shields.io/badge/Go-12%2F12%20Passing-cyan?style=flat-square&logo=go" alt="Go 12/12">
+  <a href="https://github.com/Abiress/abir-guard/actions"><img src="https://img.shields.io/badge/Tests-109%2F109%20Passing-brightgreen?style=flat-square" alt="109/109 Tests Passing"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Rust-32%2F32%20Passing-orange?style=flat-square&logo=rust" alt="Rust 32/32"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Python-65%2F65%20Passing-yellow?style=flat-square&logo=python" alt="Python 65/65"></a>
+  <a href="https://github.com/Abiress/abir-guard"><img src="https://img.shields.io/badge/Go-12%2F12%20Passing-cyan?style=flat-square&logo=go" alt="Go 12/12"></a>
 </p>
 
 <p align="center">
