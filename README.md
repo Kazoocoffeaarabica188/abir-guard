@@ -1,11 +1,11 @@
-# Abir-Guard v3.1.0 — Quantum-Resilient Agentic Vault for AI Agent Memory
+# Abir-Guard v3.1.1 — Quantum-Resilient Agentic Vault for AI Agent Memory
 
 <p align="center">
-  <strong>Protect AI agent secrets, API keys, and memory with NIST-standard post-quantum cryptography.</strong>
+  <strong>The first post-quantum vault built specifically for AI agents. Protects agent memory against Harvest Now, Decrypt Later attacks with NIST-standard ML-KEM-1024 + ML-DSA-65.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.1.0-blue?style=for-the-badge&logo=github" alt="Version 3.1.0">
+  <img src="https://img.shields.io/badge/version-3.1.1-blue?style=for-the-badge&logo=github" alt="Version 3.1.1">
   <img src="https://img.shields.io/pypi/v/abir-guard?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI" alt="PyPI">
   <img src="https://img.shields.io/crates/v/abir_guard?style=for-the-badge&logo=rust&logoColor=white&label=crates.io" alt="crates.io">
   <img src="https://img.shields.io/badge/Python-3.10%2B-green?style=for-the-badge&logo=python" alt="Python 3.10+">
@@ -38,9 +38,11 @@
 ---
 
 ```diff
-- Legacy memory storage is a ticking time bomb.
-+ Abir-Guard: The Quantum-Resilient "Black Box" for Autonomous Agent Memory.
+- Legacy memory storage is a ticking time bomb. Quantum computers will decrypt it.
++ Abir-Guard: The first post-quantum vault built specifically for AI agents.
 ```
+
+> **The Harvest Now, Decrypt Later threat is real.** Adversaries are collecting your encrypted agent memory today — waiting for quantum computers to decrypt it tomorrow. Abir-Guard stops them with NIST-standard post-quantum cryptography deployed today.
 
 ---
 
@@ -54,6 +56,29 @@
 | **Hardened** | FIPS 140-3 mode, key revocation (CRL), auto rotation, remote attestation, differential privacy, canary honeypots, tamper-evident audit logs |
 | **Hardware Ready** | YubiKey/FIDO2, TPM 2.0 seal/unseal, Apple Secure Enclave, Intel SGX detection, HSM integration, zero-copy memory policy, Argon2id KDF (OWASP params) |
 | **Tested** | 109 unit tests pass across all languages, CI/CD pipeline, dependabot |
+
+---
+
+## Why Abir-Guard?
+
+| Feature | **Abir-Guard** | HashiCorp Vault | AWS KMS | Standard AES-256 |
+|---------|-----------------|-----------------|---------|------------------|
+| **Post-Quantum Ready** | ✅ ML-KEM-1024, ML-DSA-65 | ❌ Classical only | ❌ Classical only | ❌ Classical only |
+| **AI Agent Native** | ✅ LangChain, CrewAI, MCP server | ❌ No AI integrations | ❌ No AI integrations | ❌ No AI integrations |
+| **Multi-Language SDK** | ✅ Python, Rust, Go, JavaScript | ⚠️ Limited (mostly Go/Java) | ⚠️ AWS SDK required | ❌ Manual implementation |
+| **Hardware Security** | ✅ YubiKey, TPM 2.0, Apple SE, Intel SGX | ✅ HSM support | ✅ Cloud HSM | ❌ Software only |
+| **FIPS 140-3 Mode** | ✅ Strict compliance mode | ✅ With HSM | ✅ With HSM | ❌ Not compliant |
+| **Lightweight** | ✅ 50MB disk, 128MB RAM | ❌ Heavy (300MB+) | ❌ Cloud only | ✅ Lightweight |
+| **Open Source** | ✅ MIT License | ✅ MPL 2.0 | ❌ Proprietary | ✅ Depends on lib |
+| **Cost** | ✅ Free (self-hosted) | ✅ Free (open source) | ❌ Pay per API call | ✅ Free |
+| **Key Rotation** | ✅ Auto (time/usage-based) | ✅ Manual/API | ✅ Automated | ❌ Manual |
+| **Remote Attestation** | ✅ Runtime integrity checks | ❌ Not built-in | ❌ Not built-in | ❌ Not built-in |
+
+**Key differentiators:**
+1. **Post-Quantum First** — Built from day one with NIST FIPS 203/204 standards, not retrofitted
+2. **AI Agent Native** — LangChain/CrewAI tools, MCP server — no wrapper needed
+3. **Lightweight & Multi-Language** — Deploy anywhere with SDKs for Python, Rust, Go, JavaScript
+4. **Harvest Now, Decrypt Later Protection** — Your agent memory stays secure even when quantum computers arrive
 
 ---
 
