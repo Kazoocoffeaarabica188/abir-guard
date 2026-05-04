@@ -858,6 +858,47 @@ abir_guard/
 
 ---
 
+## Upcoming Phases
+
+### 🚀 Phase 4: Enterprise & Cloud Integration (Q1 2026)
+
+*Production readiness for enterprise deployments and cloud-native workflows*
+
+- [ ] **Real YubiKey/FIDO2 Hardware** — FIDO2/CTAP2 operations, touch confirmation, PIV slot management
+- [ ] **Native TPM 2.0 API** — `tpm2-tss` library integration, PCR policy automation
+- [ ] **AWS KMS / GCP KMS Integration** — Cloud KMS backends, envelope encryption
+- [ ] **HashiCorp Vault Integration** — Vault transit engine backend, enterprise secret management
+- [ ] **Kubernetes Operator** — Auto-inject vault sidecars, secret rotation, Helm charts
+- [ ] **Multi-Tenant Support** — Organization/workspace isolation, RBAC, audit partitioning
+- [ ] **Performance Benchmarking** — Async I/O, connection pooling, 10k ops/sec target
+- [ ] **OpenTelemetry Integration** — Metrics, traces, distributed tracing for vault operations
+
+### 🔐 Phase 5: Advanced AI Security & Compliance (Q2 2026)
+
+*AI-specific security patterns, regulatory compliance, multi-agent workflows*
+
+- [ ] **Complete JavaScript SDK** — ML-KEM-1024, ML-DSA-65, WebCrypto API, browser extensions
+- [ ] **Model Weight Encryption** — Encrypt LLM weights at rest, secure fine-tuning pipelines
+- [ ] **Prompt Injection Shield** — Detect/encrypt malicious prompts, prompt signature verification
+- [ ] **GDPR/CCPA/HIPAA Compliance** — Data retention policies, right-to-erasure, audit exports
+- [ ] **Multi-Agent Key Sharing** — Threshold encryption for agent swarms, quorum-based access
+- [ ] **Secure Enclave for LLMs** — TEE-based inference (Intel TDX, AMD SEV-SNP), attested compute
+- [ ] **Zero-Knowledge Proofs** — Prove encryption without revealing data, compliance audits
+- [ ] **AI Red-Teaming Tools** — Automated attack simulation, breach scenario testing
+
+### 🌐 Phase 6: Distributed & Quantum Ecosystem (Q3 2026)
+
+*Distributed vault architecture, quantum network readiness, ecosystem expansion*
+
+- [ ] **Federated Vault Network** — Distributed vault mesh, CRDT-based sync, conflict resolution
+- [ ] **Quantum Key Distribution (QKD)** — QKD network integration, BB84 protocol support
+- [ ] **Post-Quantum TLS** — Hybrid TLS 1.3 with ML-KEM-1024, secure transport layer
+- [ ] **WASM Compilation** — Browser-native vault, edge computing, Deno/Cloudflare Workers
+- [ ] **Apple Secure Enclave Native** — Swift bindings, native SE API, macOS/iOS SDK
+- [ ] **Intel SGX Enclave** — Actual enclave creation, remote attestation, secure compute
+- [ ] **Decentralized Identity (DID)** — W3C DID integration, self-sovereign identity, verifiable credentials
+- [ ] **HSM Cluster** — Multi-HSM load balancing, failover, geographic distribution
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the PR checklist. I welcome contributions from developers, security researchers, and AI engineers.
