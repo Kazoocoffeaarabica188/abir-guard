@@ -34,7 +34,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.backends import default_backend
 
-VERSION = "3.0.0"
+VERSION = "3.1.1"
 DOMAIN = b"Abir-Guard-Hybrid-2026"
 
 # Input validation constants
@@ -145,6 +145,10 @@ __all__ = [
     "YubiKeyManager",
     "TPM2Sealer",
     "HardwareEnclave",
+    "FIPSEncryptor",
+    "KeyRotationManager",
+    "IntegrityProof",
+    "AttestationVerifier",
 ]
 
 
@@ -249,9 +253,9 @@ class EntropyCollector:
 
 
 class Vault:
-    """Zero-Copy Memory Vault with audit logging and canary support"""
+    """Zero-Copy Memory Vault with audit logging, canary, FIPS mode, key rotation, and attestation"""
     
-    def __init__(self):
+    def __init__(self, fips_mode: bool = False):
         self.encryptor = HybridEncryptor()
         self.keypairs: Dict[str, KeyPair] = {}
         self.secret_keys: Dict[str, bytes] = {}
@@ -259,6 +263,25 @@ class Vault:
         self.entropy = EntropyCollector()
         self.audit = AuditLogger()
         self._canary_ids: set = set()
+        
+        # Initialize optional security modules
+        self.fips_mode = fips_mode
+        self._fips_encryptor = None
+        self._rotation_mgr = None
+        self._attestation_verifier = None
+        
+        if fips_mode:
+            from .fips_mode import FIPSEncryptor
+            self._fips_encryptor = FIPSEncryptor()
+        
+        # Initialize key rotation manager
+        from .rotation import KeyRotationManager
+        self._rotation_mgr = KeyRotationManager()
+        
+        # Initialize attestation verifier
+        from .attestation import IntegrityProof, AttestationVerifier
+        self._attestation_verifier = AttestationVerifier()
+        self._integrity_proof = IntegrityProof()
     
     def generate_keypair(self, key_id: str) -> Tuple[str, str]:
         """Generate keypair for agent"""
@@ -267,7 +290,45 @@ class Vault:
         self.keypairs[key_id] = kp
         self.secret_keys[key_id] = sk
         self.audit.log("keygen", key_id, True)
+        
+        # Register key for rotation tracking
+        if self._rotation_mgr:
+            self._rotation_mgr.register_key(key_id)
+        
         return kp.public_key, kp.secret_key
+    
+    def _rotate_key(self, key_id: str) -> None:
+        """Internal method to rotate a key"""
+        if key_id in self._canary_ids:
+            return  # Don't rotate canary keys
+        old_secret = self.secret_keys.get(key_id)
+        if old_secret:
+            # Clear old key from memory
+            del self.secret_keys[key_id]
+        self.generate_keypair(key_id)
+        self.audit.log("key_rotation", key_id, True)
+    
+    def enable_fips_mode(self) -> None:
+        """Enable FIPS 140-3 compliance mode"""
+        from .fips_mode import FIPSEncryptor
+        self.fips_mode = True
+        self._fips_encryptor = FIPSEncryptor()
+        self.audit.log("fips_enabled", "", True)
+    
+    def disable_fips_mode(self) -> None:
+        """Disable FIPS 140-3 compliance mode"""
+        self.fips_mode = False
+        self._fips_encryptor = None
+        self.audit.log("fips_disabled", "", True)
+    
+    def verify_runtime_integrity(self, challenge: str = None) -> bool:
+        """Verify runtime integrity using attestation"""
+        if not self._attestation_verifier:
+            return True  # No attestation configured
+        if challenge is None:
+            challenge = secrets.token_hex(16)
+        self._integrity_proof.compute(challenge)
+        return self._attestation_verifier.verify_proof(self._integrity_proof.to_dict())
     
     def add_canary(self) -> str:
         """
@@ -306,8 +367,27 @@ class Vault:
         if key_id not in self.keypairs:
             self.generate_keypair(key_id)
         
+        # Check key rotation before encrypt
+        if self._rotation_mgr and self._rotation_mgr.needs_rotation(key_id):
+            self._rotate_key(key_id)
+        
+        # Use FIPS mode if enabled
+        if self.fips_mode and self._fips_encryptor:
+            key_bytes = self.secret_keys[key_id]
+            encrypted = self._fips_encryptor.encrypt(plaintext, key_bytes)
+            return Ciphertext(
+                nonce=base64.b64encode(b"fips").decode(),
+                ciphertext=base64.b64encode(encrypted).decode(),
+                auth_tag=""
+            )
+        
         ct = self.encryptor.encrypt(plaintext, self.keypairs[key_id])
         self.audit.log("encrypt", key_id, True)
+        
+        # Track key usage for rotation
+        if self._rotation_mgr:
+            self._rotation_mgr.record_usage(key_id, "encrypt")
+        
         return ct
     
     def retrieve(self, key_id: str, ciphertext: Ciphertext) -> bytes:
@@ -322,8 +402,32 @@ class Vault:
             self.audit.log("canary_breach", key_id, False,
                          "Canary key accessed — breach detected!")
         
+        # Verify attestation before decrypt (if available)
+        if self._attestation_verifier:
+            try:
+                proof_dict = self._integrity_proof.to_dict()
+                if not self._attestation_verifier.verify_proof(proof_dict):
+                    self.audit.log("attestation_failed", key_id, False,
+                                  "Runtime integrity check failed")
+                    raise ValueError("Runtime integrity check failed — possible tampering detected")
+            except Exception as e:
+                self.audit.log("attestation_error", key_id, False, str(e))
+        
+        # Use FIPS mode if enabled
+        if self.fips_mode and self._fips_encryptor:
+            key_bytes = self.secret_keys[key_id]
+            encrypted = base64.b64decode(ciphertext.ciphertext)
+            plaintext = self._fips_encryptor.decrypt(encrypted, None, None, key_bytes)
+            self.audit.log("decrypt", key_id, True)
+            return plaintext
+        
         plaintext = self.encryptor.decrypt(ciphertext, self.secret_keys[key_id])
         self.audit.log("decrypt", key_id, True)
+        
+        # Track key usage for rotation
+        if self._rotation_mgr:
+            self._rotation_mgr.record_usage(key_id, "decrypt")
+        
         return plaintext
     
     def list_keypairs(self) -> list:
@@ -354,8 +458,8 @@ class Vault:
 class McpServer:
     """MCP Protocol Server"""
     
-    def __init__(self):
-        self.vault = Vault()
+    def __init__(self, fips_mode: bool = False):
+        self.vault = Vault(fips_mode=fips_mode)
     
     def handle(self, request: dict) -> dict:
         """Handle MCP request"""
@@ -426,8 +530,26 @@ class McpServer:
             return {
                 "name": "Abir-Guard",
                 "version": VERSION,
-                "mcp_version": "1.0"
+                "mcp_version": "1.0",
+                "fips_mode": self.vault.fips_mode
             }
+        
+        elif method == "rotate_key":
+            key_id = validate_key_id(params["key_id"])
+            self.vault._rotate_key(key_id)
+            return {"key_id": key_id, "rotated": True}
+        
+        elif method == "verify_integrity":
+            result = self.vault.verify_runtime_integrity()
+            return {"integrity_ok": result}
+        
+        elif method == "fips_mode":
+            enable = params.get("enable", False)
+            if enable:
+                self.vault.enable_fips_mode()
+            else:
+                self.vault.disable_fips_mode()
+            return {"fips_mode": self.vault.fips_mode}
         
         else:
             raise ValueError(f"Unknown method: {method}")

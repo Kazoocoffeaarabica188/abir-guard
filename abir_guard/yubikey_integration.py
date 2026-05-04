@@ -165,32 +165,55 @@ class YubiKeyManager:
             YubiKeyError: If key generation fails
         """
         if not self.is_available():
-            # Fallback: Generate key in software with hardware-like security
-            # In production, this would fail if YubiKey is required
-            return self._generate_software_fallback(key_id, algorithm)
+            raise YubiKeyNotFoundError("No YubiKey device found. Connect a YubiKey and try again.")
         
-        credential_id = secrets.token_hex(32)
+        if not self._piv_available:
+            raise YubiKeyNotConfiguredError("PIV interface not available. Install yubikey-manager: pip install yubikey-manager")
         
-        self._credentials[key_id] = YubiKeyCredential(
-            credential_id=credential_id,
-            key_id=key_id,
-            algorithm=algorithm,
-            created_at=time.time(),
-            pin_protected=True
-        )
-        
-        # Generate random key material (simulated - real implementation
-        # would use YubiKey's secure element)
-        if algorithm == "ed25519":
-            key_material = secrets.token_bytes(32)
-        elif algorithm == "rsa2048":
-            key_material = secrets.token_bytes(256)
-        else:
-            key_material = secrets.token_bytes(32)
-        
-        self._key_store[key_id] = key_material
-        
-        return credential_id
+        try:
+            from ykman.piv import PivController
+            from ykman.device import connect_to_device
+            from ykman.piv import SLOT
+            
+            # Connect to YubiKey
+            device = connect_to_device()
+            piv = PivController(device)
+            
+            # Map algorithm to slot and key type
+            slot_map = {
+                "ed25519": (SLOT.AUTHENTICATION, "ed25519"),
+                "eccp256": (SLOT.AUTHENTICATION, "ecdsa-p256"),
+                "rsa2048": (SLOT.AUTHENTICATION, "rsa2048"),
+            }
+            
+            if algorithm not in slot_map:
+                raise YubiKeyError(f"Unsupported algorithm: {algorithm}")
+            
+            slot, key_type = slot_map[algorithm]
+            
+            # Generate key in PIV slot (requires PIN)
+            piv.authenticate(self.pin)
+            piv.generate_key(slot, key_type, pin_policy="once")
+            
+            # Get public key
+            public_key = piv.get_certificate(slot)
+            credential_id = secrets.token_hex(32)
+            
+            self._credentials[key_id] = YubiKeyCredential(
+                credential_id=credential_id,
+                key_id=key_id,
+                algorithm=algorithm,
+                created_at=time.time(),
+                pin_protected=True
+            )
+            
+            device.close()
+            return credential_id
+            
+        except ImportError:
+            raise YubiKeyNotConfiguredError("yubikey-manager not installed. Run: pip install yubikey-manager")
+        except Exception as e:
+            raise YubiKeyError(f"Failed to generate key on YubiKey: {e}")
     
     def sign(self, key_id: str, data: bytes) -> bytes:
         """
@@ -207,26 +230,37 @@ class YubiKeyManager:
             YubiKeyNotFoundError: If no YubiKey is connected
             KeyError: If key_id doesn't exist
         """
-        if key_id not in self._key_store:
-            raise KeyError(f"Key '{key_id}' not found")
+        if key_id not in self._credentials:
+            raise KeyError(f"Key '{key_id}' not found. Generate key first.")
         
-        # In real implementation, this would:
-        # 1. Send data to YubiKey via CTAP2/PIV
-        # 2. Require user touch confirmation
-        # 3. Return signature from YubiKey's secure element
+        if not self.is_available():
+            raise YubiKeyNotFoundError("No YubiKey device found.")
         
-        # Simulated signing for now
-        import hmac
-        import hashlib
-        
-        key_material = self._key_store[key_id]
-        signature = hmac.new(key_material, data, hashlib.sha256).digest()
-        
-        return signature
+        try:
+            from ykman.piv import PivController
+            from ykman.device import connect_to_device
+            from ykman.piv import SLOT
+            
+            device = connect_to_device()
+            piv = PivController(device)
+            
+            # Authenticate with PIN
+            piv.authenticate(self.pin)
+            
+            # Sign data using PIV slot (requires touch confirmation)
+            signature = piv.sign_data(SLOT.AUTHENTICATION, data)
+            
+            device.close()
+            return signature
+            
+        except ImportError:
+            raise YubiKeyNotConfiguredError("yubikey-manager not installed. Run: pip install yubikey-manager")
+        except Exception as e:
+            raise YubiKeyError(f"Failed to sign with YubiKey: {e}")
     
     def verify(self, key_id: str, data: bytes, signature: bytes) -> bool:
         """
-        Verify a signature.
+        Verify a signature using YubiKey public key.
         
         Args:
             key_id: Key identifier
@@ -236,16 +270,40 @@ class YubiKeyManager:
         Returns:
             True if signature is valid
         """
-        if key_id not in self._key_store:
+        if key_id not in self._credentials:
             return False
         
-        import hmac
-        import hashlib
-        
-        key_material = self._key_store[key_id]
-        expected = hmac.new(key_material, data, hashlib.sha256).digest()
-        
-        return hmac.compare_digest(signature, expected)
+        try:
+            from ykman.piv import PivController
+            from ykman.device import connect_to_device
+            from ykman.piv import SLOT
+            from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+            from cryptography.hazmat.primitives.asymmetric import utils, ec, rsa
+            from cryptography.hazmat.primitives import hashes
+            
+            device = connect_to_device()
+            piv = PivController(device)
+            
+            # Get public key from YubiKey
+            pub_key = piv.get_certificate(SLOT.AUTHENTICATION).public_key()
+            
+            # Verify signature
+            try:
+                if isinstance(pub_key, ec.EllipticCurvePublicKey):
+                    pub_key.verify(signature, data, ec.ECDSA(hashes.SHA256()))
+                elif isinstance(pub_key, rsa.RSAPublicKey):
+                    pub_key.verify(signature, data, pkcs1v15.PSS(
+                        mgf=pkcs1v15.MGF1(hashes.SHA256()),
+                        salt_length=pkcs1v15.MGF1.MAX_LENGTH
+                    ), hashes.SHA256())
+                return True
+            except Exception:
+                return False
+            finally:
+                device.close()
+                
+        except Exception:
+            return False
     
     def encrypt_with_yubikey(self, key_id: str, plaintext: bytes) -> Tuple[bytes, bytes]:
         """

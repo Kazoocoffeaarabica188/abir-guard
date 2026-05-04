@@ -5,6 +5,7 @@ Use Abir-Guard as a LangChain tool
 
 from typing import Type, Optional
 from pydantic import BaseModel, Field
+from langchain.tools import BaseTool
 from . import Vault, Ciphertext
 
 
@@ -20,33 +21,29 @@ class DecryptInput(BaseModel):
     ciphertext: dict = Field(description="Ciphertext from encrypt response")
 
 
-class SilentQEncryptTool:
-    """
-    Abir-Guard Encryption Tool for LangChain
-    
-    Usage:
-        from abir_guard.langchain import SilentQEncryptTool, SilentQDecryptTool
-        
-        encrypt_tool = SilentQEncryptTool()
-        result = encrypt_tool.invoke({"key_id": "agent-1", "data": "secret"})
-    """
-    
+class KeyGenInput(BaseModel):
+    """Input for key generation tool"""
+    key_id: str = Field(description="Unique identifier for the new keypair")
+
+
+class SilentQEncryptTool(BaseTool):
+    """Abir-Guard Encryption Tool for LangChain"""
+
     name = "abir_guard_encrypt"
     description = "Encrypts sensitive data using quantum-resistant encryption. Use this to protect API keys, passwords, or other secrets before storing or passing to AI models."
-    
+    args_schema: Type[BaseModel] = EncryptInput
+
     def __init__(self, vault: Optional[Vault] = None):
+        super().__init__()
         if vault is None:
             from . import Vault as V
             vault = V()
         self.vault = vault
-    
-    def invoke(self, input_data: dict) -> dict:
+
+    def _run(self, key_id: str, data: str) -> dict:
         """Encrypt data"""
-        key_id = input_data["key_id"]
-        data = input_data["data"].encode()
-        
-        ct = self.vault.store(key_id, data)
-        
+        ct = self.vault.store(key_id, data.encode())
+
         return {
             "success": True,
             "key_id": key_id,
@@ -56,66 +53,62 @@ class SilentQEncryptTool:
             },
             "message": "Data encrypted successfully"
         }
-    
-    def __call__(self, input_data: dict) -> dict:
-        return self.invoke(input_data)
+
+    async def _arun(self, key_id: str, data: str) -> dict:
+        return self._run(key_id, data)
 
 
-class SilentQDecryptTool:
-    """
-    Abir-Guard Decryption Tool for LangChain
-    """
-    
+class SilentQDecryptTool(BaseTool):
+    """Abir-Guard Decryption Tool for LangChain"""
+
     name = "abir_guard_decrypt"
     description = "Decrypts data that was encrypted with Abir-Guard. Requires the same key_id used for encryption."
-    
+    args_schema: Type[BaseModel] = DecryptInput
+
     def __init__(self, vault: Optional[Vault] = None):
+        super().__init__()
         self.vault = vault or Vault()
-    
-    def invoke(self, input_data: dict) -> dict:
+
+    def _run(self, key_id: str, ciphertext: dict) -> dict:
         """Decrypt data"""
-        key_id = input_data["key_id"]
-        ct = Ciphertext(**input_data["ciphertext"])
-        
+        ct = Ciphertext(**ciphertext)
         plaintext = self.vault.retrieve(key_id, ct)
-        
+
         return {
             "success": True,
             "key_id": key_id,
             "plaintext": plaintext.decode(),
             "message": "Data decrypted successfully"
         }
-    
-    def __call__(self, input_data: dict) -> dict:
-        return self.invoke(input_data)
+
+    async def _arun(self, key_id: str, ciphertext: dict) -> dict:
+        return self._run(key_id, ciphertext)
 
 
-class SilentQKeyGenTool:
-    """
-    Abir-Guard Key Generation Tool for LangChain
-    """
-    
+class SilentQKeyGenTool(BaseTool):
+    """Abir-Guard Key Generation Tool for LangChain"""
+
     name = "abir_guard_keygen"
     description = "Generates a new quantum-resistant keypair for an AI agent. Each agent should have its own unique key_id."
-    
+    args_schema: Type[BaseModel] = KeyGenInput
+
     def __init__(self, vault: Optional[Vault] = None):
+        super().__init__()
         self.vault = vault or Vault()
-    
-    def invoke(self, input_data: dict) -> dict:
+
+    def _run(self, key_id: str) -> dict:
         """Generate keypair"""
-        key_id = input_data["key_id"]
-        
         pub, sec = self.vault.generate_keypair(key_id)
-        
+
         return {
             "success": True,
             "key_id": key_id,
             "public_key": pub[:32] + "...",
             "message": "Keypair generated. Keep secret_key secure!"
         }
-    
-    def __call__(self, input_data: dict) -> dict:
-        return self.invoke(input_data)
+
+    async def _arun(self, key_id: str) -> dict:
+        return self._run(key_id)
 
 
 def get_langchain_tools(vault: Optional[Vault] = None):

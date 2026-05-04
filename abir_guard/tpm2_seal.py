@@ -170,15 +170,27 @@ class TPM2Sealer:
             if result.returncode != 0:
                 raise TPM2Error(f"Policy creation failed: {result.stderr}")
             
-            # Seal the data
+            # Create primary key first (required for tpm2_create)
+            primary_ctx = f"{self._temp_dir}/primary.ctx"
+            result = subprocess.run(
+                ["tpm2_createprimary",
+                 "-C", "o",  # owner hierarchy
+                 "-g", "sha256",
+                 "-G", "ecc",
+                 "-c", primary_ctx],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode != 0:
+                raise TPM2Error(f"Primary key creation failed: {result.stderr}")
+
+            # Seal the data (now with valid parent context)
             cmd = [
                 "tpm2_create",
-                "-C", "o",  # owner hierarchy
+                "-C", primary_ctx,  # parent key context
                 "-i", secret_file,
                 "-u", f"{sealed_file}.pub",
                 "-r", f"{sealed_file}.priv",
-                "-L", policy_file,
-                "-c", "ecc"
+                "-L", policy_file
             ]
             
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -224,32 +236,63 @@ class TPM2Sealer:
         if not self.is_available():
             return self._software_unseal(sealed)
         
-        # Write sealed blob to temp file
-        sealed_file = f"{self._temp_dir}/unseal_{secrets.token_hex(8)}"
-        unsealed_file = f"{sealed_file}_out"
+        # Write sealed blob to temp files
+        sealed_pub = f"{self._temp_dir}/unseal_{secrets.token_hex(8)}.pub"
+        sealed_priv = f"{self._temp_dir}/unseal_{secrets.token_hex(8)}.priv"
+        primary_ctx = f"{self._temp_dir}/primary_unseal.ctx"
+        sealed_ctx = f"{self._temp_dir}/sealed_obj.ctx"
+        unsealed_file = f"{self._temp_dir}/unsealed_out.bin"
         
         try:
-            with open(sealed_file, "wb") as f:
-                f.write(sealed.sealed_blob)
+            # Split sealed blob back to pub/priv (this is simplified - real impl needs proper format)
+            # For now, assume sealed_blob contains both
+            blob_data = sealed.sealed_blob
+            pub_data = blob_data[:len(blob_data)//2]
+            priv_data = blob_data[len(blob_data)//2:]
+            
+            with open(sealed_pub, "wb") as f:
+                f.write(pub_data)
+            with open(sealed_priv, "wb") as f:
+                f.write(priv_data)
+            
+            # Create primary key (same as seal)
+            result = subprocess.run(
+                ["tpm2_createprimary",
+                 "-C", "o",
+                 "-g", "sha256",
+                 "-G", "ecc",
+                 "-c", primary_ctx],
+                capture_output=True, timeout=10
+            )
+            if result.returncode != 0:
+                raise TPM2Error(f"Primary key creation failed: {result.stderr}")
+            
+            # Load sealed object into TPM
+            result = subprocess.run(
+                ["tpm2_load",
+                 "-C", primary_ctx,
+                 "-u", sealed_pub,
+                 "-r", sealed_priv,
+                 "-c", sealed_ctx],
+                capture_output=True, timeout=10
+            )
+            if result.returncode != 0:
+                raise TPM2Error(f"Failed to load sealed object: {result.stderr}")
             
             # Unseal
-            cmd = [
-                "tpm2_unseal",
-                "-c", sealed_file,
-                "-o", unsealed_file
-            ]
-            
+            cmd = ["tpm2_unseal", "-c", sealed_ctx, "-o", unsealed_file]
             result = subprocess.run(cmd, capture_output=True, timeout=10)
+            
             if result.returncode != 0:
                 raise TPM2Error(
-                    f"TPM unseal failed (likely PCR mismatch): {result.stderr.decode()}"
+                    f"TPM unseal failed (likely PCR mismatch): {result.stderr}"
                 )
             
             with open(unsealed_file, "rb") as f:
                 return f.read()
                 
         finally:
-            for f in [sealed_file, unsealed_file]:
+            for f in [sealed_pub, sealed_priv, primary_ctx, sealed_ctx, unsealed_file]:
                 try:
                     os.unlink(f)
                 except FileNotFoundError:

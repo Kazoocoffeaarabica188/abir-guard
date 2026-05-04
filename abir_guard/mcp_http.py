@@ -87,6 +87,7 @@ class McpHttpHandler(BaseHTTPRequestHandler):
     rate_limiter: Optional[RateLimiter] = None
     auth: Optional[AuthValidator] = None
     max_body_size: int = MAX_BODY_SIZE
+    server_start_time: float = time.time()
     
     # Class-level audit log
     audit_log: list = []
@@ -187,22 +188,44 @@ class McpHttpHandler(BaseHTTPRequestHandler):
             self._send_json_error(-32603, "Server not initialized")
             return
         
-        self._send_json(response)
-        self.send_header("X-RateLimit-Remaining", str(remaining) if self.rate_limiter else "unlimited")
+        # Send response with rate limit header BEFORE end_headers
+        if self.rate_limiter:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("X-RateLimit-Remaining", str(remaining))
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Cache-Control", "no-store")
+            response_bytes = json.dumps(response).encode("utf-8")
+            self.send_header("Content-Length", str(len(response_bytes)))
+            self.end_headers()
+            self.wfile.write(response_bytes)
+        else:
+            self._send_json(response)
     
     def do_GET(self):
         """Handle GET requests"""
         if self.path == "/health":
+            uptime = time.time() - self.server_start_time
             self._send_json({
                 "status": "ok",
                 "version": VERSION,
                 "name": "Abir-Guard MCP",
-                "uptime": time.time()
+                "uptime_seconds": round(uptime, 2)
             })
-        elif self.path == "/audit" and self.auth and self.auth.validate(
-            self.headers.get("Authorization", "").replace("Bearer ", "")
-        ):
-            self._send_json({"log": self.audit_log[-100:]})
+        elif self.path == "/audit":
+            # Check auth for audit endpoint
+            auth_header = self.headers.get("Authorization", "")
+            api_key = None
+            if auth_header.startswith("Bearer "):
+                api_key = auth_header[7:]
+            if self.auth and self.auth.validate(api_key):
+                self._send_json({"log": self.audit_log[-100:]})
+            else:
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Unauthorized"}).encode())
         else:
             self._send_json_error(-32601, "Method not found")
     
